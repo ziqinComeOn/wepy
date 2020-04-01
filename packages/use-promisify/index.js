@@ -128,7 +128,7 @@ const simplifyArgs = {
 
   // tabBar
   setTabBarBadge: 'index,text',
-  removeTabBarBadge: 'idnex',
+  removeTabBarBadge: 'index',
   showTabBarRedDot: 'index',
   hideTabBarRedDot: 'index',
   showTabBar: 'animation',
@@ -144,7 +144,14 @@ const simplifyArgs = {
   reLaunch: 'url',
 
   // pageScroll
-  pageScrollTo: 'scrollTop,duration'
+  pageScrollTo: 'scrollTop,duration',
+
+  // Open API
+  getSetting: 'withSubscriptions',
+  getUserInfo: 'withCredentials,lang',
+  authorize: 'scope',
+  requestSubscribeMessage: 'tmplIds',
+  showRedPackage: 'url'
 };
 
 const makeObj = arr => {

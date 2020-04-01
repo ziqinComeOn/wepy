@@ -8,7 +8,6 @@ import { initRender } from './render';
 import { initData } from './data';
 import { initComputed } from './computed';
 import { initMethods } from './methods';
-import { initEvents } from './events';
 import { isArr, isFunc } from '../../shared/index';
 import Dirty from '../class/Dirty';
 import { WEAPP_APP_LIFECYCLE, WEAPP_PAGE_LIFECYCLE, WEAPP_COMPONENT_LIFECYCLE } from '../../shared/index';
@@ -100,6 +99,8 @@ export function patchLifecycle(output, options, rel, isComponent) {
     vm._watchers = [];
     if (!isComponent) {
       vm.$root = vm;
+    }
+    if (app) {
       vm.$app = app;
     }
     if (this.is === 'custom-tab-bar/index') {
@@ -147,10 +148,10 @@ export function patchLifecycle(output, options, rel, isComponent) {
       let acceptProps = this.properties;
       let vm = this.$wepy;
 
+      this.triggerEvent('_init', vm);
+
       // created 不能调用 setData，如果有 dirty 在此更新
       vm.$forceUpdate();
-
-      initEvents(vm);
 
       Object.keys(outProps).forEach(k => (vm[k] = acceptProps[k]));
 
@@ -166,6 +167,44 @@ export function patchLifecycle(output, options, rel, isComponent) {
       let currentPage = pages[pages.length - 1];
       let path = currentPage.__route__;
       let webViewId = currentPage.__wxWebviewId__;
+
+      let refs = rel.refs || [];
+      let query = wx.createSelectorQuery();
+
+      refs.forEach(item => {
+        // {
+        //   id: { name: 'hello', bind: true },
+        //   ref: { name: 'value', bind: false }
+        // }
+        let idAttr = item.id;
+        let refAttr = item.ref;
+        let actualAttrIdName = idAttr.name;
+        let actualAttrRefName = refAttr.name;
+        let selector = `#${actualAttrIdName}`;
+
+        if (idAttr.bind) {
+          // if id is a bind attr
+          actualAttrIdName = vm[idAttr.name];
+          selector = `#${actualAttrIdName}`;
+          vm.$watch(idAttr.name, function(newAttrName) {
+            actualAttrIdName = newAttrName;
+            selector = `#${actualAttrIdName}`;
+            vm.$refs[actualAttrRefName] = query.select(selector);
+          });
+        }
+
+        if (refAttr.bind) {
+          // if ref is a bind attr
+          actualAttrRefName = vm[refAttr.name];
+
+          vm.$watch(refAttr.name, function(newAttrName, oldAttrName) {
+            actualAttrRefName = newAttrName;
+            vm.$refs[oldAttrName] = null;
+            vm.$refs[newAttrName] = query.select(selector);
+          });
+        }
+        vm.$refs[actualAttrRefName] = query.select(selector);
+      });
 
       // created 不能调用 setData，如果有 dirty 在此更新
       vm.$forceUpdate();
